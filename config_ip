@@ -1,0 +1,42 @@
+#!/bin/bash
+
+ipadd=$1
+netmask=$2
+gateway=$3
+
+if [ "$ipadd" = "" -o "$netmask" = "" ]; then
+  echo "Failure"
+  exit 1
+fi
+
+interfacePath=$(augtool match /files/etc/network/interfaces/iface\[*\] eth0)
+if [ "$interfacePath" != "" ]
+then
+  #eth0 exist,set the input ip parameters
+  command="set $interfacePath/address $ipadd \n set $interfacePath/netmask $netmask \n save"
+  echo -e "$command" | augtool
+  EXCODE=$?
+  if [ $EXCODE -eq 0 ]; then
+    echo "Success"
+    exit 0
+  else
+    echo "Failure"
+    exit 1
+  fi
+else
+  #if eth0 not exist,add eth0 and set the input ip parameters
+  command="set /files/etc/network/interfaces/iface[last()+1] eth0 \n
+  set /files/etc/network/interfaces/iface[last()]/family inet \n
+  set /files/etc/network/interfaces/iface[last()]/method dhcp \n
+  set /files/etc/network/interfaces/iface[last()]/address $ipadd \n
+  set /files/etc/network/interfaces/iface[last()]/netmask $netmask \n save"
+  echo -e "$command" | augtool
+  EXCODE=$?
+  if [ $EXCODE -eq 0 ]; then
+    echo "Success"
+    exit 0
+  else
+    echo "Failure"
+    exit 1
+  fi
+fi
